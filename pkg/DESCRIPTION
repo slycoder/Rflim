@@ -1,0 +1,10 @@
+Package: Rflim
+Type: Package
+Title: Fast Learning of Ising Models
+Version: 1.0
+Date: 2011-08-17
+Author: Jonathan Chang
+Maintainer: Jonathan Chang <jonchang@fb.com>
+Description: This package implements the Fast Learning of Ising Models (FLIM) technique which aims to perform inference and learning for large-scale fully-connected pairwise Ising models.
+License: LGPL
+LazyLoad: yes
