@@ -1,2 +1,2 @@
-PKG_CXXFLAGS=$(shell Rscript -e "Rcpp:::CxxFlags()")
-PKG_LIBS=$(shell Rscript -e "Rcpp:::LdFlags()")
+PKG_CXXFLAGS=$(shell Rscript -e "Rcpp:::CxxFlags()") $(shell gsl-config --cflags) -I $(shell Rscript -e "cat(tools:::file_path_as_absolute(base:::system.file('include', package = 'RcppGSL')))")
+PKG_LIBS=$(shell Rscript -e "Rcpp:::LdFlags()") $(shell gsl-config --libs)
