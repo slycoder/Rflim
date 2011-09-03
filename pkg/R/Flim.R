@@ -22,7 +22,13 @@ Flim <- function(singleton.counts,
                       pairwise.counts[,3],
                       document.count)
   for (ii in 1:num.iterations) {
-    flim.obj$optimizeAll()
+    cat("Iteration ")
+    print(ii)
+    print(system.time({
+      flim.obj$estimateExpectations()
+      cat("Total change: ")
+      print(flim.obj$optimizeAll())
+    }))
   }
   return(flim.obj)
 }

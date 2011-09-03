@@ -2,6 +2,7 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_sf_lambert.h>
 #include <vector>
+#include <math.h>
 
 class Flim {
   // Actual parameters.
@@ -40,7 +41,7 @@ public:
                        empirical_pair_(N, N),
                        empirical_singleton_(N) {
     gsl_matrix_float_set_zero(lambda_);
-    gsl_vector_float_set_zero(ones_);
+    gsl_vector_float_set_all(ones_, 1.0);
   }
 
   ~Flim() {
@@ -108,7 +109,6 @@ public:
     initializeKappa(num_documents);
   }
 
-
   float sigmoid(float x) {
     return 1.0 / (1.0 + exp(-x));
   }
@@ -130,19 +130,66 @@ public:
     return exp(p11) / (exp(p11) + exp(p10) + exp(p01) + 1);
   }
 
-  void optimizeAll() {
+  double optimizeAll() {
+    double total_delta = 0.0;
     for (int x = 0; x < lambda_.nrow(); ++x) {
       for (int y = 0; y < x; ++y) {
-        optimizeLambda(y, x);
+        total_delta += optimizeLambda(y, x);
       }
     }
+    return total_delta;
   }
 
-  void optimizeLambda(unsigned int x, unsigned int y) {
+  /**
+   * Proof of lemma 3.2.1:
+   *
+   * x = a - b e^x
+   *
+   * iff 
+   *
+   *    x = a - W(be^a)
+   * => W(be^a) = a - x
+   * => (a-x) exp(a - x) = be^a
+   *
+   */
+
+  double optimizeLambda(unsigned int x, unsigned int y) {
+#ifdef NEW_WAY
     double A = getComputedExpectation(x, y) * exp(-lambda_(x, y));
     double B = 2 * beta2_;
     double C = empirical_pair_(x, y) - beta1_;
+#else
+    double A = getComputedExpectation(x, y);
+    double B = 2 * beta2_;
+    double C = empirical_pair_(x, y) - beta1_ - 2 * beta2_ * lambda_(x, y);
+#endif
+
+// #define DEBUGGING_NOISE
+#ifdef  DEBUGGING_NOISE
+    if (empirical_pair_(x, y) > 0 && rand() < RAND_MAX / 1000) {
+      double overcount_x = lambda_(x,y) * singleton_expectation_[y];
+      double overcount_y = lambda_(x,y) * singleton_expectation_[x];
     
+      double p10 = q_lambda_[x] + kappa_[x] - overcount_x;
+      double p01 = q_lambda_[y] + kappa_[y] - overcount_y;
+
+      double p11 = estimates_(x,y) - overcount_x - overcount_y;
+
+      std::cout << getComputedExpectation(x, y) << " "
+                << empirical_pair_(x, y) << " " 
+                << kappa_[x] << " " 
+                << kappa_[y] << " "
+                << lambda_(x,y) << " " 
+                << x << " " << y << " "
+                << q_lambda_[x] << " "
+                << q_lambda_[y] << " "
+                << estimates_(x,y) << " "
+                << overcount_x << " " << overcount_y << " "
+                << p10 << " " << p01 << " " << p11 << " "
+                << std::endl;
+    }
+#endif
+
     double delta1 = 0;
     double delta2 = 0;
     if (beta2_ == 0) {
@@ -171,8 +218,14 @@ public:
       new_lambda = 0;
     }
 
+    double delta = fabs(new_lambda - lambda_(x,y));
+    if (delta - delta != 0) {
+      delta = 0.0;
+    }
+
     lambda_(x,y) = new_lambda;
     lambda_(y,x) = new_lambda;
+    return delta;
   }
 
   RcppGSL::matrix<float> getLambda() {
