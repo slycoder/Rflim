@@ -1,4 +1,5 @@
 import(methods)
 importClassesFrom(Rcpp, "C++Object", "C++Class", "Module")
 useDynLib(Rflim)
-export(Rflim)
+export(Flim)
+export(count.pairs)

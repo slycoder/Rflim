@@ -37,10 +37,10 @@ public:
                        singleton_expectation_(N),
                        beta1_(beta1),
                        beta2_(beta2),
-                       empirical_pair_(N),
+                       empirical_pair_(N, N),
                        empirical_singleton_(N) {
-    gsl_matrix_set_zero(lambda_);
-    gsl_vector_set_zero(ones_);
+    gsl_matrix_float_set_zero(lambda_);
+    gsl_vector_float_set_zero(ones_);
   }
 
   ~Flim() {
@@ -61,13 +61,13 @@ public:
   // (note that lambda_{i, i} = 0)
   unsigned int estimateExpectations() {
     // estimates_{x,y} = lambda_{x,y}
-    gsl_matrix_memcpy(estimates_, lambda_);
+    gsl_matrix_float_memcpy(estimates_, lambda_);
     // estimates_{x,y} = lambda_{x,y} + kappa_x
     gsl_blas_sger(1.0, ones_, kappa_, estimates_);
     // estimates_{x,y} = lambda_{x,y} + kappa_x + kappa_y
     gsl_blas_sger(1.0, kappa_, ones_, estimates_);
 
-    gsl_vector_set_zero(q_lambda_);
+    gsl_vector_float_set_zero(q_lambda_);
     gsl_blas_sgemv(CblasNoTrans,
                    1.0,
                    lambda_,
@@ -82,10 +82,14 @@ public:
   }
 
   void initializeKappa(int num_documents) {
-    gsl_vector_memcpy(kappa_, empirical_singleton_);
-    gsl_vector_scale(kappa_, num_documents);
-    gsl_vector_add_constant(kappa_, 1.0);
-    gsl_vector_scale(kappa_, 1.0 / (2.0 + num_documents));
+    gsl_vector_float_memcpy(kappa_, empirical_singleton_);
+    gsl_vector_float_scale(kappa_, num_documents);
+    gsl_vector_float_add_constant(kappa_, 1.0);
+    gsl_vector_float_scale(kappa_, 1.0 / (2.0 + num_documents));
+    for (int ii = 0; ii < kappa_.size(); ++ii) {
+      singleton_expectation_[ii] = kappa_[ii];
+      kappa_[ii] = logit(kappa_[ii]);
+    }
   }
 
   void loadCorpus(const std::vector<double>& singleton, 
@@ -97,8 +101,8 @@ public:
       empirical_singleton_[ii] = singleton[ii] / num_documents;
     }
     for (int ii = 0; ii < pair_x.size(); ++ii) {
-      int xx = pair_x[ii];
-      int yy = pair_y[ii];
+      int xx = pair_x[ii] - 1;
+      int yy = pair_y[ii] - 1;
       empirical_pair_(xx, yy) = pair_count[ii] / num_documents;
     }
     initializeKappa(num_documents);
@@ -170,11 +174,19 @@ public:
     lambda_(x,y) = new_lambda;
     lambda_(y,x) = new_lambda;
   }
+
+  RcppGSL::matrix<float> getLambda() {
+    return lambda_;
+  }
 };
 
 RCPP_MODULE(Rflim) {
 	using namespace Rcpp;
 
 	class_<Flim>("Flim")		
-		.method("estimateExpectations", &Flim::estimateExpectations);
+    .constructor<int,double,double>()
+		.method("loadCorpus", &Flim::loadCorpus)
+		.method("optimizeAll", &Flim::optimizeAll)
+		.method("estimateExpectations", &Flim::estimateExpectations)
+    .method("getLambda", &Flim::getLambda);
 }
