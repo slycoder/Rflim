@@ -8,3 +8,7 @@ Maintainer: Jonathan Chang <jonchang@fb.com>
 Description: This package implements the Fast Learning of Ising Models (FLIM) technique which aims to perform inference and learning for large-scale fully-connected pairwise Ising models.
 License: LGPL
 LazyLoad: yes
+Depends: methods, Rcpp (>= 0.9.7)
+LinkingTo: Rcpp
+RcppModules: Rflim
+
