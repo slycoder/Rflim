@@ -18,7 +18,7 @@ pairwise.counts <- subset(data.frame(
 
 save(pairwise.counts, singleton.counts, file="counts.Rdata")
 
-flim.instance <- Flim(singleton.counts,
+flim.instance <- flim(singleton.counts,
                       pairwise.counts,
                       length(documents),
                       0.0, 0.0, 15)

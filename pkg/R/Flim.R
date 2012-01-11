@@ -1,4 +1,4 @@
-Flim <- function(singleton.counts,
+flim <- function(singleton.counts,
                  pairwise.counts,
                  document.count,
                  beta.1 = 0.1,
@@ -13,8 +13,7 @@ Flim <- function(singleton.counts,
     stop("Atrocity!  Pairwise count indices must be between 1 and N.");
   }
 
-  flim.obj <- new(.module$Flim, N, beta.1, beta.2)
-  
+  flim.obj <- new(Flim, N, beta.1, beta.2)
 
   flim.obj$loadCorpus(singleton.counts, 
                       pairwise.counts[,1],
